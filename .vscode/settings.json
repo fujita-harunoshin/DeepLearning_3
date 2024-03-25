@@ -1,8 +1,15 @@
 {
   "cSpell.words": [
     "allclose",
+    "backprop",
+    "cleargrad",
+    "dezero",
     "funcs",
+    "goldstein",
     "isscalar",
-    "ndarray"
+    "matyas",
+    "ndarray",
+    "ndim",
+    "rdiv"
   ]
 }
