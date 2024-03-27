@@ -4,12 +4,16 @@
     "backprop",
     "cleargrad",
     "dezero",
+    "dtypes",
     "funcs",
     "goldstein",
+    "graphiz",
+    "graphviz",
     "isscalar",
     "matyas",
     "ndarray",
     "ndim",
-    "rdiv"
+    "rdiv",
+    "rosenbrock"
   ]
 }
