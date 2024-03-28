@@ -1,8 +1,11 @@
 {
   "cSpell.words": [
     "allclose",
+    "arange",
     "backprop",
     "cleargrad",
+    "cleargrads",
+    "Deconv",
     "dezero",
     "dtypes",
     "funcs",
@@ -10,10 +13,16 @@
     "graphiz",
     "graphviz",
     "isscalar",
+    "keepdims",
+    "logsumexp",
     "matyas",
     "ndarray",
     "ndim",
+    "newaxis",
     "rdiv",
-    "rosenbrock"
+    "rosenbrock",
+    "sumdx",
+    "tlog",
+    "tupled"
   ]
 }
