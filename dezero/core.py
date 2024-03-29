@@ -31,12 +31,19 @@ def no_grad():
 # =============================================================================
 # Variable / Function
 # =============================================================================
+try:
+    import cupy
+    array_types = (np.ndarray, cupy.ndarray)
+except ImportError:
+    array_types = (np.ndarray)
+
+
 class Variable:
     __array_priority__ = 200
 
     def __init__(self, data, name=None):
         if data is not None:
-            if not isinstance(data, np.ndarray):
+            if not isinstance(data, array_types):
                 raise TypeError('{} is not supported'.format(type(data)))
 
         self.data = data
@@ -79,7 +86,8 @@ class Variable:
 
     def backward(self, retain_grad=False, create_graph=False):
         if self.grad is None:
-            self.grad = np.ones_like(self.data)
+            xp = dezero.cuda.get_array_module(self.data)
+            self.grad = Variable(xp.ones_like(self.data))
 
         funcs = []
         seen_set = set()
@@ -134,6 +142,14 @@ class Variable:
     def sum(self, axis=None, keepdims=False):
         return dezero.functions.sum(self, axis, keepdims)
 
+    def to_cpu(self):
+        if self.data is not None:
+            self.data = dezero.cuda.as_numpy(self.data)
+
+    def to_gpu(self):
+        if self.data is not None:
+            self.data = dezero.cuda.as_cupy(self.data)
+
 
 class Parameter(Variable):
     pass
@@ -145,9 +161,9 @@ def as_variable(obj):
     return Variable(obj)
 
 
-def as_array(x):
+def as_array(x, array_module=np):
     if np.isscalar(x):
-        return np.array(x)
+        return array_module.array(x)
     return x
 
 
@@ -188,14 +204,14 @@ class Add(Function):
 
     def backward(self, gy):
         gx0, gx1 = gy, gy
-        if self.x0_shape != self.x1_shape:
+        if self.x0_shape != self.x1_shape:  # for broadcaset
             gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
             gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
         return gx0, gx1
 
 
 def add(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Add()(x0, x1)
 
 
@@ -215,7 +231,7 @@ class Mul(Function):
 
 
 def mul(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Mul()(x0, x1)
 
 
@@ -240,19 +256,19 @@ class Sub(Function):
     def backward(self, gy):
         gx0 = gy
         gx1 = -gy
-        if self.x0_shape != self.x1_shape:
+        if self.x0_shape != self.x1_shape:  # for broadcast
             gx0 = dezero.functions.sum_to(gx0, self.x0_shape)
             gx1 = dezero.functions.sum_to(gx1, self.x1_shape)
         return gx0, gx1
 
 
 def sub(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Sub()(x0, x1)
 
 
 def rsub(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Sub()(x1, x0)
 
 
@@ -265,19 +281,19 @@ class Div(Function):
         x0, x1 = self.inputs
         gx0 = gy / x1
         gx1 = gy * (-x0 / x1 ** 2)
-        if x0.shape != x1.shape:
+        if x0.shape != x1.shape:  # for broadcast
             gx0 = dezero.functions.sum_to(gx0, x0.shape)
             gx1 = dezero.functions.sum_to(gx1, x1.shape)
         return gx0, gx1
 
 
 def div(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Div()(x0, x1)
 
 
 def rdiv(x0, x1):
-    x1 = as_array(x1)
+    x1 = as_array(x1, dezero.cuda.get_array_module(x0.data))
     return Div()(x1, x0)
 
 
