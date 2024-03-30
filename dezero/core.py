@@ -12,6 +12,7 @@ import dezero
 # =============================================================================
 class Config:
     enable_backprop = True
+    train = True
 
 
 @contextlib.contextmanager
@@ -26,6 +27,9 @@ def using_config(name, value):
 
 def no_grad():
     return using_config('enable_backprop', False)
+
+def test_mode():
+    return using_config('train', False)
 
 
 # =============================================================================
@@ -77,6 +81,9 @@ class Variable:
         p = str(self.data).replace('\n', '\n' + ' ' * 9)
         return 'variable(' + p + ')'
 
+    def unchain(self):
+        self.creator = None
+
     def set_creator(self, func):
         self.creator = func
         self.generation = func.generation + 1
@@ -121,6 +128,16 @@ class Variable:
             if not retain_grad:
                 for y in f.outputs:
                     y().grad = None  # y is weakref
+
+    def unchain_backward(self):
+        if self.creator is not None:
+            funcs = [self.creator]
+            while funcs:
+                f = funcs.pop()
+                for x in f.inputs:
+                    if x.creator is not None:
+                        funcs.append(x.creator)
+                        x.unchain()
 
     def reshape(self, *shape):
         if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
